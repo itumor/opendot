@@ -1,8 +1,11 @@
 {
-  "name": "deepseek-dot",
-  "version": "0.1.0",
+  "name": "opendot",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "DEEPSEEK DOT — always-on agent layers for DeepSeek Harness, mounted as preset file rows",
-  "license": "MIT"
+  "description": "opendot — an always-on personal agent built on DeepSeek Harness, modeled on OpenAI dots",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/"
+  }
 }

@@ -38,7 +38,8 @@ function newId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
-function normalize(item) {
+/** Named export so tests can drive the schedule-item validator directly. */
+export function normalize(item) {
   if (item === null || typeof item !== 'object') return null;
   if (item.kind === 'every' && typeof item.everySeconds === 'number' && item.everySeconds >= 5) return item;
   if (item.kind === 'at' && typeof item.at === 'string' && !Number.isNaN(Date.parse(item.at))) return item;

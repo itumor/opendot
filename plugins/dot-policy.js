@@ -27,46 +27,11 @@
  * reason about and repair its own policy.
  */
 import { readJson, nowIso } from './lib/dotstore.js';
+import { DEFAULT_POLICY, decide, sanitize } from './lib/dotrules.js';
 import { dotTool } from './lib/dottool.js';
 
 export const name = 'dot-policy';
 export const inject = ['dotCore', 'tools', 'systemPrompt'];
-
-const DEFAULT_POLICY = { mode: 'advisory', allow: ['*'], ask: [], deny: [] };
-
-function matchPattern(name, pattern) {
-  if (pattern === '*') return true;
-  if (pattern.endsWith('*')) return name.startsWith(pattern.slice(0, -1));
-  return name === pattern;
-}
-
-function matchAny(name, patterns) {
-  if (!Array.isArray(patterns)) return undefined;
-  return patterns.find((pattern) => typeof pattern === 'string' && matchPattern(name, pattern));
-}
-
-function decide(policy, toolName) {
-  const denied = matchAny(toolName, policy.deny);
-  if (denied !== undefined) return { level: 'deny', rule: denied };
-  const asked = matchAny(toolName, policy.ask);
-  if (asked !== undefined) return { level: 'ask', rule: asked };
-  const allowed = matchAny(toolName, policy.allow);
-  if (allowed !== undefined) return { level: 'allow', rule: allowed };
-  return { level: 'allow', rule: '(default)' };
-}
-
-function sanitize(raw) {
-  if (raw === null || typeof raw !== 'object') return { policy: DEFAULT_POLICY, valid: false };
-  const policy = {
-    mode: raw.mode === 'enforce' ? 'enforce' : 'advisory',
-    note: typeof raw.note === 'string' ? raw.note : undefined,
-    allow: Array.isArray(raw.allow) ? raw.allow.filter((x) => typeof x === 'string') : ['*'],
-    ask: Array.isArray(raw.ask) ? raw.ask.filter((x) => typeof x === 'string') : [],
-    deny: Array.isArray(raw.deny) ? raw.deny.filter((x) => typeof x === 'string') : [],
-  };
-  if (policy.allow.length === 0) policy.allow = ['*'];
-  return { policy, valid: true };
-}
 
 export function apply(ctx) {
   const core = ctx.dotCore;

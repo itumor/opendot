@@ -1,0 +1,41 @@
+# The dot body slice of an agent preset (agent.cordis.yml).
+#
+# Mount the whole `standard` preset stack plus this group to get the full dot.
+# Replace /path/to with your checkout and dot home, and place this group inside
+# your own agent preset file (see your DSH presets directory).
+#
+# Editing a file:// plugin changes the dot on its next mount — no build step.
+
+- id: dot
+  name: cordis:group
+  group: true
+  isolate:
+    dotCore: true
+    dotMemory: true
+    dotScheduler: true
+    dotPolicy: true
+    dotEvents: true
+  config:
+    - id: dot-core
+      name: 'file:///path/to/opendot/plugins/dot-core.js'
+      config:
+        root: /path/to/dot-home   # the .dot state directory; files are the interface
+
+    - id: dot-scheduler
+      name: 'file:///path/to/opendot/plugins/dot-scheduler.js'
+      config:
+        heartbeatSeconds: 60      # min 5, max 3600
+
+    - id: dot-memory
+      name: 'file:///path/to/opendot/plugins/dot-memory.js'
+
+    - id: dot-policy
+      name: 'file:///path/to/opendot/plugins/dot-policy.js'
+
+    - id: dot-events
+      name: 'file:///path/to/opendot/plugins/dot-events.js'
+      config:
+        # inboxPath: /dot/inbox     # GET|POST trigger enqueue
+        # hookPrefix: /dot/hook     # POST named webhooks
+        # statusPath: /dot/status   # GET activity view (HTML or ?format=json)
+        # secret: change-me         # gates write endpoints (x-dot-secret header or ?secret=)

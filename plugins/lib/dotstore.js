@@ -11,7 +11,7 @@
  *    crash of the agent that owns the dot;
  *  - all timestamps are ISO-8601 UTC.
  */
-import { mkdir, readFile, writeFile, rename, appendFile } from 'node:fs/promises';
+import { mkdir, open, readFile, writeFile, rename, appendFile } from 'node:fs/promises';
 
 export async function ensureDir(dir) {
   await mkdir(dir, { recursive: true });
@@ -65,6 +65,27 @@ export async function readJsonLines(path) {
     }
   }
   return out;
+}
+
+/**
+ * Read only the tail of a (potentially huge) file: opens the file, seeks to
+ * `size - maxBytes`, and decodes the rest. Absent/unreadable files degrade to
+ * `fallback`. Used by status surfaces that must never load a whole journal.
+ */
+export async function readTail(path, maxBytes, fallback = '') {
+  let handle = null;
+  try {
+    handle = await open(path, 'r');
+    const { size } = await handle.stat();
+    const length = Math.max(0, Math.min(size, maxBytes));
+    const buffer = Buffer.alloc(length);
+    await handle.read(buffer, 0, length, size - length);
+    return buffer.toString('utf8');
+  } catch {
+    return fallback;
+  } finally {
+    if (handle !== null) await handle.close().catch(() => {});
+  }
 }
 
 export function nowIso() {
