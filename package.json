@@ -6,6 +6,6 @@
   "description": "opendot — an always-on personal agent built on DeepSeek Harness, modeled on OpenAI dots",
   "license": "MIT",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test"
   }
 }
