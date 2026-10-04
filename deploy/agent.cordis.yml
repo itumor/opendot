@@ -15,6 +15,7 @@
     dotScheduler: true
     dotPolicy: true
     dotEvents: true
+    dotProfile: true
   config:
     - id: dot-core
       name: 'file:///path/to/opendot/plugins/dot-core.js'
@@ -39,3 +40,6 @@
         # hookPrefix: /dot/hook     # POST named webhooks
         # statusPath: /dot/status   # GET activity view (HTML or ?format=json)
         # secret: change-me         # gates write endpoints (x-dot-secret header or ?secret=)
+
+    - id: dot-profile
+      name: 'file:///path/to/opendot/plugins/dot-profile.js'

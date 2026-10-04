@@ -13,14 +13,14 @@ No build step, no npm install, no fork: the `dot` agent preset references the pl
                       │
            dot agent preset (agent.cordis.yml)
                       │
-     ┌────────┬───────┴─────────┬──────────┬─────────────┐
-     │        │                 │          │             │
- dot-core  dot-scheduler   dot-memory  dot-policy   dot-events
- state     heartbeat +     memory.md   policy.json  HTTP ears:
- home      durable         dot_remember rules +     inbox, webhooks,
- kv,inbox, wakeups         dot_recall   enforcement status view
- journal,
- dot_state
+     ┌────────┬──────────┴─┬────────┬──────────┬───────────┐
+     │        │            │        │          │           │
+ dot-core  dot-        dot-    dot-    dot-      dot-
+ state     scheduler  memory  policy  events    profile
+ home      heartbeat  memory  rules   HTTP      identity +
+ kv,inbox, + durable  recall   +       ears      preferences
+ journal,  wakeups            guard   + status
+ dot_state                           view
 ```
 
 The always-on loop (the wake path is deliberately *write-only* — schedulers and webhooks never call a model; they write to `inbox.jsonl`, and the dot's standing goal loop drains it and does the thinking. Tokens get spent on work, not on polling):
@@ -50,11 +50,14 @@ plugins/
   lib/dottool.js    shared ToolDefinition builder
   lib/dotrules.js   policy decision engine (pure, unit-tested)
   lib/dothttp.js    HTTP primitives: bodies, queries, secrets, HTML escaping
+  lib/dotprefs.js   profile/preferences parsing + feedback shaping (pure)
   dot-core.js       service dotCore + tool dot_state + dot.status prompt context
   dot-scheduler.js  service dotScheduler + tool dot_schedule + heartbeat
   dot-memory.js     service dotMemory + tools dot_remember / dot_recall
   dot-policy.js     service dotPolicy + tool dot_policy + tools.guard enforcement
   dot-events.js     service dotEvents + tool dot_event + HTTP routes (v0.2)
+  dot-profile.js    service dotProfile + tools dot_profile / dot_feedback +
+                    dot.profile prompt section (identity + operator model, v0.3)
 tests/              node:test suite (npm test), no dependencies
 ```
 
@@ -114,7 +117,7 @@ The `dot` preset at `~/.dsh/.agent-presets/dot/agent.cordis.yml` mounts these fi
 - id: dot
   name: cordis:group
   group: true
-  isolate: { dotCore: true, dotMemory: true, dotScheduler: true, dotPolicy: true, dotEvents: true }
+  isolate: { dotCore: true, dotMemory: true, dotScheduler: true, dotPolicy: true, dotEvents: true, dotProfile: true }
   config:
     - id: dot-core
       name: 'file:///path/to/plugins/dot-core.js'
@@ -129,6 +132,8 @@ The `dot` preset at `~/.dsh/.agent-presets/dot/agent.cordis.yml` mounts these fi
     - id: dot-events
       name: 'file:///path/to/plugins/dot-events.js'
       config: { }
+    - id: dot-profile
+      name: 'file:///path/to/plugins/dot-profile.js'
 ```
 
 Plugin module contract: ESM named exports `name`, optional `inject`, `apply(ctx, config)`; provide services with `ctx.provide(name, value)`; consume with `ctx.get`/`inject`; keep every side effect fiber-owned (`ctx.interval`, `ctx.effect`). Node builtins only — bare package imports do not resolve from here.
@@ -139,11 +144,19 @@ Plugin module contract: ESM named exports `name`, optional `inject`, `apply(ctx,
 npm test    # node --test tests/ — storage, rules engine, schedules, HTTP layer
 ```
 
+## Identity and learning (v0.3, first slice: dot-profile)
+
+OpenAI's dots start by getting a name and grow by learning what good looks like. dot-profile is that layer:
+
+- `profile.json` in the dot home — `{ name, tagline, operator }`, operator-editable; every step the `dot.profile` prompt section carries it in front of the model.
+- `preferences.md` — a curated section of stable operator preferences up top, and a `## feedback log` at the bottom where `dot_feedback` appends (+)/(−)/(~) signals. The log stays last; the dot distils repeated patterns into curated by editing the file.
+- Tools: `dot_profile view|reload`, `dot_feedback {signal, note, context?}`.
+
 ## Roadmap
 
 - **v0.1** — core/scheduler/memory/policy, file rows, mount-validated ✅
-- **v0.2 (current)** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite
-- v0.3 — dot-profile: a named identity, `preferences.md` operator model, feedback capture ("learns what good looks like"); specialist sub-dot roster; GitHub/Slack bridges on top of `/dot/hook`; vector recall
+- **v0.2** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite ✅
+- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`; ranked recall
 - v0.4 — graduate to TypeScript packages + `dsh plugin add` bundles; dot-ui panel; remote always-on deployment (EKS, Hatchet/Temporal)
 
 ## Parity with OpenAI dots
@@ -155,8 +168,8 @@ npm test    # node --test tests/ — storage, rules engine, schedules, HTTP laye
 | Works where you work (Slack/Teams/text) | ◐ webhooks today; Slack/Teams bridges on the v0.3 list |
 | Proactive research while idle | ◐ schedule-driven; richer idle-time work queue planned |
 | Custom Rules (allow/approve/block) | ✅ policy.json with advisory/enforce modes |
-| Learns preferences from feedback | ◐ memory.md today; dedicated preference model in v0.3 |
-| Give it a name, make it your own | ◐ preset persona today; dot-profile identity in v0.3 |
+| Learns preferences from feedback | ✅ dot_feedback capture + curated preferences.md (curation loop growing) |
+| Give it a name, make it your own | ✅ profile.json name/tagline/operator, in the prompt every step |
 | Activity review and approvals | ◐ journal + status page; in-chat approval flow via policy `ask` |
 | Teams of specialist dots | ◐ subagents today; specialist roster in v0.3 |
 | Plugin ecosystem (apps) | ❌ webhooks are the wedge; MCP tools under consideration |
