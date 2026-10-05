@@ -149,6 +149,17 @@ work round advances the project with the highest `value × urgency` by one
 durable increment, rewriting its `next:` in the same round. The doc carries
 the persona paragraph that teaches the loop the rule.
 
+## Idle-time curiosity queue
+
+Between instructions the dot should get *more useful*, not just stay alive.
+The convention ([docs/curiosity-queue.md](docs/curiosity-queue.md)):
+`.dot/curiosity.md` holds a prioritized queue of read-only research items
+harvested from tasks.md, memory.md and the journal; a durable hourly
+schedule fires a pulse that researches exactly ONE item (read-only, one per
+pulse, `parked` for anything needing writes or credentials) and files
+findings into memory.md plus `curiosity/<slug>.md` notes. The doc carries
+the persona paragraph that teaches the loop the bounds.
+
 ## State home
 
 Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.dot`):
@@ -164,6 +175,7 @@ Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.d
 | `schedule.json` | dot-scheduler | durable wakeups (`dot_schedule`) |
 | `tasks.md` | you + dot | standing tasks (driven by the persona) |
 | `projects.md` | you + dot | portfolio view: one ranked `next:` per project (see docs/multi-project-board.md) |
+| `curiosity.md` + `curiosity/` | you + dot | idle-time read-only research queue + finding notes (see docs/curiosity-queue.md) |
 | `status/<day>.md` | dot-report | daily rollup: what the dot did, what fired, anomalies (`dot_report`) |
 
 Files are the interface: read, edit, or append any of them directly; the dot rebuilds safely from partial state (atomic writes, seen-JSON fallbacks, torn-line-tolerant journals).
@@ -226,7 +238,7 @@ OpenAI's dots start by getting a name and grow by learning what good looks like.
 
 - **v0.1** — core/scheduler/memory/policy, file rows, mount-validated ✅
 - **v0.2** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite ✅
-- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; daily status rollups ✅; multi-project board conventions ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
+- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; daily status rollups ✅; multi-project board ✅; GitHub bridge ✅ (ingress follow-up #11); curiosity queue ✅; specialist sub-dot roster; Slack bridge on `/dot/hook`
 - v0.4 — graduate to TypeScript packages + `dsh plugin add` bundles; dot-ui panel; remote always-on deployment (EKS, Hatchet/Temporal)
 
 ## Parity with OpenAI dots
