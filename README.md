@@ -120,6 +120,17 @@ dot_schedule add-every --name daily-rollup --everySeconds 86400 \
 list` shows what exists. Mount the `dot-report` preset row first (see
 `deploy/agent.cordis.yml`).
 
+## Multi-project rounds
+
+A dot juggling several projects must not just take the top line of
+`tasks.md` — order accretes, so top-of-file means oldest, not most valuable.
+The convention ([docs/multi-project-board.md](docs/multi-project-board.md)):
+`tasks.md` stays the flat standing list, `projects.md` holds one section per
+project (`state` / `value` / `urgency` / a single `next:` action), and each
+work round advances the project with the highest `value × urgency` by one
+durable increment, rewriting its `next:` in the same round. The doc carries
+the persona paragraph that teaches the loop the rule.
+
 ## State home
 
 Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.dot`):
@@ -134,6 +145,7 @@ Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.d
 | `policy.json` | dot-policy | autonomy rules (`dot_policy`) |
 | `schedule.json` | dot-scheduler | durable wakeups (`dot_schedule`) |
 | `tasks.md` | you + dot | standing tasks (driven by the persona) |
+| `projects.md` | you + dot | portfolio view: one ranked `next:` per project (see docs/multi-project-board.md) |
 | `status/<day>.md` | dot-report | daily rollup: what the dot did, what fired, anomalies (`dot_report`) |
 
 Files are the interface: read, edit, or append any of them directly; the dot rebuilds safely from partial state (atomic writes, seen-JSON fallbacks, torn-line-tolerant journals).
@@ -196,7 +208,7 @@ OpenAI's dots start by getting a name and grow by learning what good looks like.
 
 - **v0.1** — core/scheduler/memory/policy, file rows, mount-validated ✅
 - **v0.2** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite ✅
-- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; daily status rollups ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
+- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; daily status rollups ✅; multi-project board conventions ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
 - v0.4 — graduate to TypeScript packages + `dsh plugin add` bundles; dot-ui panel; remote always-on deployment (EKS, Hatchet/Temporal)
 
 ## Parity with OpenAI dots
