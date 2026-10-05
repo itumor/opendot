@@ -26,9 +26,19 @@
  * The guard never touches tools named dot_* — a dot must always be able to
  * reason about and repair its own policy.
  */
-import { readJson, nowIso } from './lib/dotstore.js';
-import { DEFAULT_POLICY, decide, sanitize } from './lib/dotrules.js';
-import { dotTool } from './lib/dottool.js';
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports — see the header of dot-core.js for why
+// the mtime stamp is load-bearing (stale per-URL module cache across preset
+// remounts). Keep every './lib/…' specifier behind fresh().
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const { readJson, nowIso } = await import(fresh('./lib/dotstore.js'));
+const { DEFAULT_POLICY, decide, sanitize } = await import(fresh('./lib/dotrules.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 export const name = 'dot-policy';
 export const inject = ['dotCore', 'tools', 'systemPrompt'];

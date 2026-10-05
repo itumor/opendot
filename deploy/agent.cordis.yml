@@ -5,6 +5,12 @@
 # your own agent preset file (see your DSH presets directory).
 #
 # Editing a file:// plugin changes the dot on its next mount — no build step.
+# Rows MUST point at the stable *.entry.js shims, never at the organ files:
+# Node caches file: modules per process by URL, so each mount re-imports the
+# organ through its shim (per-mount-unique query) and organs re-import lib/*
+# helpers behind mtime-stamped queries — fresh code, no harness restart.
+# Only an organ's name/inject list is frozen per process: changing plugin
+# identity asks for a restart and fails loudly, never silently.
 
 - id: dot
   name: cordis:group
@@ -18,23 +24,23 @@
     dotProfile: true
   config:
     - id: dot-core
-      name: 'file:///path/to/opendot/plugins/dot-core.js'
+      name: 'file:///path/to/opendot/plugins/dot-core.entry.js'
       config:
         root: /path/to/dot-home   # the .dot state directory; files are the interface
 
     - id: dot-scheduler
-      name: 'file:///path/to/opendot/plugins/dot-scheduler.js'
+      name: 'file:///path/to/opendot/plugins/dot-scheduler.entry.js'
       config:
         heartbeatSeconds: 60      # min 5, max 3600
 
     - id: dot-memory
-      name: 'file:///path/to/opendot/plugins/dot-memory.js'
+      name: 'file:///path/to/opendot/plugins/dot-memory.entry.js'
 
     - id: dot-policy
-      name: 'file:///path/to/opendot/plugins/dot-policy.js'
+      name: 'file:///path/to/opendot/plugins/dot-policy.entry.js'
 
     - id: dot-events
-      name: 'file:///path/to/opendot/plugins/dot-events.js'
+      name: 'file:///path/to/opendot/plugins/dot-events.entry.js'
       config:
         # inboxPath: /dot/inbox     # GET|POST trigger enqueue
         # hookPrefix: /dot/hook     # POST named webhooks
@@ -42,4 +48,4 @@
         # secret: change-me         # gates write endpoints (x-dot-secret header or ?secret=)
 
     - id: dot-profile
-      name: 'file:///path/to/opendot/plugins/dot-profile.js'
+      name: 'file:///path/to/opendot/plugins/dot-profile.entry.js'

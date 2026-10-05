@@ -58,8 +58,25 @@ plugins/
   dot-events.js     service dotEvents + tool dot_event + HTTP routes (v0.2)
   dot-profile.js    service dotProfile + tools dot_profile / dot_feedback +
                     dot.profile prompt section (identity + operator model, v0.3)
+  *.entry.js        stable-URL mount shims — preset rows point at these
 tests/              node:test suite (npm test), no dependencies
 ```
+
+### The entry-shim contract
+
+Preset rows must reference `plugins/<organ>.entry.js`, never the organ file
+itself. DSH imports file rows once per process and Node caches modules per
+URL forever, so a row aimed at an organ would silently keep running its
+first-ever evaluation on every remount — and a stale cached `lib/*.js` fails
+the whole mount with `does not provide an export named …`. Each shim is
+permanent and logic-free: its `apply()` re-imports the organ behind a
+per-mount-unique query on every mount, and each organ re-imports its `lib/*`
+helpers behind `?mtime=<stamp>` queries. Editing an organ or a helper
+therefore takes effect on the next mount — no build step, no harness restart
+— while unedited helpers stay single-instance across all organs. Two
+boundaries, both loud rather than silent: an organ's `name`/`inject` surface
+is frozen per process (changing plugin identity needs a harness restart), and
+every mount adds one small module record. Never add behavior to a shim.
 
 ## HTTP event surface (v0.2)
 
@@ -111,7 +128,7 @@ Files are the interface: read, edit, or append any of them directly; the dot reb
 
 ## Mounting
 
-The `dot` preset at `~/.dsh/.agent-presets/dot/agent.cordis.yml` mounts these files via absolute `file://` rows inside one isolated `cordis:group` (see `deploy/agent.cordis.yml` in this repo for a copy):
+The `dot` preset at `~/.dsh/.agent-presets/dot/agent.cordis.yml` mounts the `*.entry.js` shims via absolute `file://` rows inside one isolated `cordis:group` (see `deploy/agent.cordis.yml` in this repo for a copy):
 
 ```yaml
 - id: dot
@@ -120,20 +137,20 @@ The `dot` preset at `~/.dsh/.agent-presets/dot/agent.cordis.yml` mounts these fi
   isolate: { dotCore: true, dotMemory: true, dotScheduler: true, dotPolicy: true, dotEvents: true, dotProfile: true }
   config:
     - id: dot-core
-      name: 'file:///path/to/plugins/dot-core.js'
+      name: 'file:///path/to/plugins/dot-core.entry.js'
       config: { root: /path/to/dot-home }
     - id: dot-scheduler
-      name: 'file:///path/to/plugins/dot-scheduler.js'
+      name: 'file:///path/to/plugins/dot-scheduler.entry.js'
       config: { heartbeatSeconds: 60 }
     - id: dot-memory
-      name: 'file:///path/to/plugins/dot-memory.js'
+      name: 'file:///path/to/plugins/dot-memory.entry.js'
     - id: dot-policy
-      name: 'file:///path/to/plugins/dot-policy.js'
+      name: 'file:///path/to/plugins/dot-policy.entry.js'
     - id: dot-events
-      name: 'file:///path/to/plugins/dot-events.js'
+      name: 'file:///path/to/plugins/dot-events.entry.js'
       config: { }
     - id: dot-profile
-      name: 'file:///path/to/plugins/dot-profile.js'
+      name: 'file:///path/to/plugins/dot-profile.entry.js'
 ```
 
 Plugin module contract: ESM named exports `name`, optional `inject`, `apply(ctx, config)`; provide services with `ctx.provide(name, value)`; consume with `ctx.get`/`inject`; keep every side effect fiber-owned (`ctx.interval`, `ctx.effect`). Node builtins only — bare package imports do not resolve from here.

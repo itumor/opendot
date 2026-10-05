@@ -28,9 +28,21 @@
  *    /dot/status is always open because it exposes nothing writable and the
  *    default bind is loopback.
  */
-import { readJsonLines, readTail, nowIso } from './lib/dotstore.js';
-import { readBody, parseUrl, checkSecret, sendJson, sendHtml, escapeHtml, clip } from './lib/dothttp.js';
-import { dotTool } from './lib/dottool.js';
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports — see the header of dot-core.js for why
+// the mtime stamp is load-bearing (stale per-URL module cache across preset
+// remounts). Keep every './lib/…' specifier behind fresh(). In particular:
+// this organ was born in v0.2 while a v0.1 dotstore (without readTail) was
+// still cached — the "does not provide an export named 'readTail'" failure.
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const { readJsonLines, readTail, nowIso } = await import(fresh('./lib/dotstore.js'));
+const { readBody, parseUrl, checkSecret, sendJson, sendHtml, escapeHtml, clip } = await import(fresh('./lib/dothttp.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 export const name = 'dot-events';
 export const inject = ['dotCore', 'tools'];

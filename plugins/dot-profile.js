@@ -21,9 +21,19 @@
  */
 import { join } from 'node:path';
 import { appendFile } from 'node:fs/promises';
-import { ensureDir, readJson, readText, nowIso } from './lib/dotstore.js';
-import { parseBullets, formatFeedback, normalizeSignal } from './lib/dotprefs.js';
-import { dotTool } from './lib/dottool.js';
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports — see the header of dot-core.js for why
+// the mtime stamp is load-bearing (stale per-URL module cache across preset
+// remounts). Keep every './lib/…' specifier behind fresh().
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const { ensureDir, readJson, readText, nowIso } = await import(fresh('./lib/dotstore.js'));
+const { parseBullets, formatFeedback, normalizeSignal } = await import(fresh('./lib/dotprefs.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 export const name = 'dot-profile';
 export const inject = ['dotCore', 'tools', 'systemPrompt'];

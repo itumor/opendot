@@ -22,8 +22,18 @@
  * `task` is an instruction to the dot itself — text the goal loop will read
  * when it drains the inbox. Firing does not run anything; the dot decides.
  */
-import { ensureDir, readJson, writeJsonAtomic } from './lib/dotstore.js';
-import { dotTool } from './lib/dottool.js';
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports — see the header of dot-core.js for why
+// the mtime stamp is load-bearing (stale per-URL module cache across preset
+// remounts). Keep every './lib/…' specifier behind fresh().
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const { ensureDir, readJson, writeJsonAtomic } = await import(fresh('./lib/dotstore.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 /**
  * NOTE on realm shape: dotCore comes from the sibling row inside the same

@@ -19,7 +19,23 @@
  */
 import { join } from 'node:path';
 import { rename, appendFile, unlink } from 'node:fs/promises';
-import {
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports. DSH preset file rows are imported once
+// per process and Node caches modules by URL, so a remounted preset would
+// silently keep running the first version it ever saw — or fail the whole
+// mount with "does not provide an export named …" when a stale cached helper
+// lacks an export a newer organ asks for (that failure is why this exists).
+// Stamping every repo-internal specifier with the file's own mtime makes the
+// CONTENT the cache key: editing takes effect on the next mount, as the
+// preset documents. One level up, the *.entry.js shims re-import these
+// organs behind a per-mount-unique query, so organ edits land the same way.
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const {
   ensureDir,
   readJson,
   writeJsonAtomic,
@@ -27,8 +43,8 @@ import {
   readText,
   readJsonLines,
   nowIso,
-} from './lib/dotstore.js';
-import { dotTool } from './lib/dottool.js';
+} = await import(fresh('./lib/dotstore.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 /** First-boot content; written only when the file is absent. */
 const SEEDS = {

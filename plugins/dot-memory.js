@@ -12,8 +12,18 @@
  * this down?" beats "what is semantically adjacent?".
  */
 import { appendFile } from 'node:fs/promises';
-import { readText, nowIso } from './lib/dotstore.js';
-import { dotTool } from './lib/dottool.js';
+import { statSync } from 'node:fs';
+
+// Cache-proof repo-internal imports — see the header of dot-core.js for why
+// the mtime stamp is load-bearing (stale per-URL module cache across preset
+// remounts). Keep every './lib/…' specifier behind fresh().
+const fresh = (rel) => {
+  const url = new URL(rel, import.meta.url);
+  url.search = `?mtime=${statSync(url).mtimeMs}`;
+  return url.href;
+};
+const { readText, nowIso } = await import(fresh('./lib/dotstore.js'));
+const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 export const name = 'dot-memory';
 export const inject = ['dotCore', 'tools'];
