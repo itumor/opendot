@@ -50,6 +50,7 @@ plugins/
   lib/dottool.js    shared ToolDefinition builder
   lib/dotrules.js   policy decision engine (pure, unit-tested)
   lib/dothttp.js    HTTP primitives: bodies, queries, secrets, HTML escaping
+  lib/dotgh.js      GitHub webhook verification (HMAC-SHA-256) + event→task mapping
   lib/dotprefs.js   profile/preferences parsing + feedback shaping (pure)
   lib/dotrollup.js  daily status.md builder (pure): day filter, counts, anomalies
   dot-core.js       service dotCore + tool dot_state + dot.status prompt context
@@ -100,6 +101,23 @@ curl "http://127.0.0.1:3080/dot/inbox?from=cron&message=hourly%20sweep"
 curl -X POST "http://127.0.0.1:3080/dot/hook/github-ci" -d '{"repo":"app","conclusion":"failure"}'
 open "http://127.0.0.1:3080/dot/status"
 ```
+
+## GitHub bridge (v0.3)
+
+Set `ghSecret` in the dot-events config row to the same token as a GitHub
+webhook secret, and point the webhook (repo → Settings → Webhooks, content
+type `application/json`, events: issues, issue comments, PRs, checks,
+workflow runs, pushes, ping) at `https://<your-host>/dot/hook/github`:
+
+- Every delivery is HMAC-verified (`X-Hub-Signature-256` over the raw body,
+  timing-safe compare) — a forged POST gets 401 and a journal entry, never
+  an inbox item.
+- Verified events land in `inbox.jsonl` task-shaped: CI failure →
+  *investigate* (with run URL), issue opened/closed → *triage/reconcile*,
+  comment → *triage (dot mentioned?)*, PR opened ⇒ *review or run tests*.
+  Successful checks and in-progress runs are acknowledged, not enqueued.
+- Without `ghSecret` the same path stays an ordinary raw webhook — no
+  surprise lockouts on a half-configured upgrade.
 
 ## Daily status pages (v0.3)
 

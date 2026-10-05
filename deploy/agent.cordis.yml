@@ -47,6 +47,8 @@
         # hookPrefix: /dot/hook     # POST named webhooks
         # statusPath: /dot/status   # GET activity view (HTML or ?format=json)
         # secret: change-me         # gates write endpoints (x-dot-secret header or ?secret=)
+        # ghSecret: webhook-token   # GitHub bridge: verify X-Hub-Signature-256 on
+                                    # POST /dot/hook/github and map events to inbox tasks
 
     - id: dot-profile
       name: 'file:///path/to/opendot/plugins/dot-profile.entry.js'

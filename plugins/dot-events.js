@@ -27,6 +27,12 @@
  *  - An optional shared secret (`config.secret`) gates the write endpoints;
  *    /dot/status is always open because it exposes nothing writable and the
  *    default bind is loopback.
+ *  - An optional GitHub webhook secret (`config.ghSecret`) turns
+ *    POST /dot/hook/github into the GitHub bridge: X-Hub-Signature-256
+ *    verified (HMAC-SHA-256 over the raw body, timing-safe), events mapped
+ *    to task-shaped inbox items (CI failure → investigate; issue opened or
+ *    commented → triage), junk acknowledged but not enqueued. Without the
+ *    secret the path stays an ordinary raw webhook.
  */
 import { statSync } from 'node:fs';
 
@@ -42,6 +48,7 @@ const fresh = (rel) => {
 };
 const { readJsonLines, readTail, nowIso } = await import(fresh('./lib/dotstore.js'));
 const { readBody, parseUrl, checkSecret, sendJson, sendHtml, escapeHtml, clip } = await import(fresh('./lib/dothttp.js'));
+const { verifyGitHubSignature, mapGitHubEvent } = await import(fresh('./lib/dotgh.js'));
 const { dotTool } = await import(fresh('./lib/dottool.js'));
 
 export const name = 'dot-events';
@@ -108,6 +115,9 @@ export function apply(ctx, config = {}) {
     status: typeof config.statusPath === 'string' ? config.statusPath : '/dot/status',
   };
   const secret = typeof config.secret === 'string' && config.secret !== '' ? config.secret : null;
+  // GitHub webhook secret: when set, POST /dot/hook/github becomes an
+  // HMAC-verified, event-mapped bridge instead of a raw webhook.
+  const ghSecret = typeof config.ghSecret === 'string' && config.ghSecret !== '' ? config.ghSecret : null;
 
   // Soft host-service lookups: absent services degrade features, never fibers.
   let webServer = null;
@@ -171,6 +181,37 @@ export function apply(ctx, config = {}) {
     const name = clip(pathname.slice(routePaths.hook.length).replace(/^\/+/, ''), 80) || 'unnamed';
     const body = await readBody(req, BODY_LIMIT);
     if (!body.ok) return sendJson(res, 413, { ok: false, error: body.error });
+
+    // GitHub bridge: with ghSecret configured, /dot/hook/github only accepts
+    // HMAC-authenticated deliveries and lands as a task-shaped inbox item.
+    if (name === 'github' && ghSecret !== null) {
+      const signature = req.headers ? req.headers['x-hub-signature-256'] : undefined;
+      if (!verifyGitHubSignature(ghSecret, body.text, signature)) {
+        await core.journal({ kind: 'github-hook-rejected', reason: 'bad-signature' });
+        return sendJson(res, 401, { ok: false, error: 'bad signature' });
+      }
+      const event = clip(req.headers?.['x-github-event'] ?? '', 60) || 'unknown';
+      let ghPayload = null;
+      if (body.text !== '') {
+        try {
+          ghPayload = JSON.parse(body.text);
+        } catch {
+          ghPayload = null;
+        }
+      }
+      await core.journal({
+        kind: 'github-event',
+        event,
+        action: clip(ghPayload?.action ?? '', 40),
+        repo: clip(ghPayload?.repository?.full_name ?? '', 120),
+      });
+      const mapped = mapGitHubEvent(event, ghPayload);
+      if (mapped === null) return sendJson(res, 202, { ok: true, event, ignored: true });
+      const summary = ghPayload === null ? undefined : clip(JSON.stringify(ghPayload), 8000);
+      await enqueue({ kind: 'github', name: mapped.name, from: `github:${event}`, message: mapped.message, ...(summary !== undefined ? { payload: summary } : {}) });
+      return sendJson(res, 202, { ok: true, event, queued: mapped.name });
+    }
+
     let payload = null;
     if (body.text !== '') {
       try {
@@ -258,6 +299,7 @@ export function apply(ctx, config = {}) {
     owned,
     conflicts: conflicts.length,
     secret: secret !== null,
+    ghBridge: ghSecret !== null,
   });
 
   const eventsApi = {
