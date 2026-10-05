@@ -7,9 +7,12 @@
  * human can read or edit it directly — memory you can inspect is memory you
  * can trust.
  *
- * Recall is deliberately simple: case-insensitive substring match, newest
- * first. A vector store is a v0.3 concern; for a personal dot, "did I write
- * this down?" beats "what is semantically adjacent?".
+ * Recall is ranked (lib/dotmemoryquery.js): multi-term queries score lines
+ * by term coverage first, recency as tie-break, with `tag:x` / `#x` tokens
+ * as hard tag filters. Coverage dominates so an old full match beats a fresh
+ * partial one. Full vector search stays a v0.4 option — for a personal dot,
+ * ranked "did I write this down?" still beats "what is semantically
+ * adjacent?".
  */
 import { appendFile } from 'node:fs/promises';
 import { statSync } from 'node:fs';
@@ -24,6 +27,7 @@ const fresh = (rel) => {
 };
 const { readText, nowIso } = await import(fresh('./lib/dotstore.js'));
 const { dotTool } = await import(fresh('./lib/dottool.js'));
+const { rankRecall } = await import(fresh('./lib/dotmemoryquery.js'));
 
 export const name = 'dot-memory';
 export const inject = ['dotCore', 'tools'];
@@ -45,12 +49,7 @@ export function apply(ctx) {
 
   async function recall(query, limit) {
     const text = await readText(core.paths.memory, '');
-    const lines = text.split('\n').filter((line) => line.startsWith('- ['));
-    if (typeof query !== 'string' || query.trim() === '') {
-      return lines.slice(-limit).reverse();
-    }
-    const needle = query.trim().toLowerCase();
-    return lines.filter((line) => line.toLowerCase().includes(needle)).slice(-limit).reverse();
+    return rankRecall(text, typeof query === 'string' ? query : undefined, { limit });
   }
 
   ctx.provide('dotMemory', { remember, recall });
@@ -77,7 +76,7 @@ export function apply(ctx) {
     dotTool({
       name: 'dot_recall',
       description:
-        'Search the dot’s long-term memory. Substring match over memory.md, newest first. Call without a query for the most recent facts. Read memory before answering questions about past decisions or preferences.',
+        'Search the dot’s long-term memory (memory.md). Ranked search: multiple terms match by coverage first, recency breaks ties; tag filters with #tag or tag:tag (e.g. "rollout tag:prod"). Call without a query for the most recent facts. Read memory before answering questions about past decisions or preferences.',
       properties: {
         query: { type: 'string', description: 'Text to search for (omit for recent facts).' },
         limit: { type: 'number', description: 'Max facts to return (default 10, max 50).' },

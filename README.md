@@ -173,7 +173,7 @@ OpenAI's dots start by getting a name and grow by learning what good looks like.
 
 - **v0.1** — core/scheduler/memory/policy, file rows, mount-validated ✅
 - **v0.2** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite ✅
-- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`; ranked recall
+- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
 - v0.4 — graduate to TypeScript packages + `dsh plugin add` bundles; dot-ui panel; remote always-on deployment (EKS, Hatchet/Temporal)
 
 ## Parity with OpenAI dots
