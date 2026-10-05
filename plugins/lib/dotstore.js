@@ -33,6 +33,13 @@ export async function writeJsonAtomic(path, value) {
   await rename(tmp, path);
 }
 
+/** Plain-text atomic write (status rollups, generated markdown): tmp + rename. */
+export async function writeTextAtomic(path, text) {
+  const tmp = `${path}.tmp-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
+  await writeFile(tmp, String(text), 'utf8');
+  await rename(tmp, path);
+}
+
 /** Append one line (no newline handling inside `line`): journals and logs. */
 export async function appendLine(path, line) {
   await appendFile(path, line + '\n', 'utf8');

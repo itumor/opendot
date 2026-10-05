@@ -12,6 +12,7 @@
  *   memory.md          long-term notes (managed by dot-memory)
  *   policy.json        autonomy rules (managed by dot-policy)
  *   schedule.json      durable schedules (managed by dot-scheduler)
+ *   status/            daily rollup pages, status/YYYY-MM-DD.md (dot-report)
  *   README.md          operator-facing map of this directory
  *
  * Everything is files: the operator can read and edit every piece of their
@@ -68,7 +69,7 @@ const SEEDS = {
   'inbox.jsonl': () => '',
   'heartbeat.log': () => '',
   'README.md': (root) =>
-    `# Dot state\n\nEverything the dot persists lives here as plain files.\n\n- kv.json — durable key/value state (dot_state tool)\n- inbox.jsonl — pending triggers; drained items move to inbox.done.jsonl\n- heartbeat.log — liveness pulse\n- journal.jsonl — append-only audit spine\n- memory.md — long-term notes (dot_remember / dot_recall)\n- policy.json — autonomy rules (dot_policy, dot-policy plugin)\n- schedule.json — durable wakeups (dot_schedule)\n\nHome: ${root}\n`,
+    `# Dot state\n\nEverything the dot persists lives here as plain files.\n\n- kv.json — durable key/value state (dot_state tool)\n- inbox.jsonl — pending triggers; drained items move to inbox.done.jsonl\n- heartbeat.log — liveness pulse\n- journal.jsonl — append-only audit spine\n- memory.md — long-term notes (dot_remember / dot_recall)\n- policy.json — autonomy rules (dot_policy, dot-policy plugin)\n- schedule.json — durable wakeups (dot_schedule)\n- status/ — daily rollup pages (dot_report)\n\nHome: ${root}\n`,
 };
 
 export const name = 'dot-core';

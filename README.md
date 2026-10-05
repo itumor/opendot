@@ -51,6 +51,7 @@ plugins/
   lib/dotrules.js   policy decision engine (pure, unit-tested)
   lib/dothttp.js    HTTP primitives: bodies, queries, secrets, HTML escaping
   lib/dotprefs.js   profile/preferences parsing + feedback shaping (pure)
+  lib/dotrollup.js  daily status.md builder (pure): day filter, counts, anomalies
   dot-core.js       service dotCore + tool dot_state + dot.status prompt context
   dot-scheduler.js  service dotScheduler + tool dot_schedule + heartbeat
   dot-memory.js     service dotMemory + tools dot_remember / dot_recall
@@ -58,6 +59,8 @@ plugins/
   dot-events.js     service dotEvents + tool dot_event + HTTP routes (v0.2)
   dot-profile.js    service dotProfile + tools dot_profile / dot_feedback +
                     dot.profile prompt section (identity + operator model, v0.3)
+  dot-report.js     service dotReport + tool dot_report: daily status pages
+                    (status/YYYY-MM-DD.md), linked from tasks.md (v0.3)
   *.entry.js        stable-URL mount shims — preset rows point at these
 tests/              node:test suite (npm test), no dependencies
 ```
@@ -98,6 +101,25 @@ curl -X POST "http://127.0.0.1:3080/dot/hook/github-ci" -d '{"repo":"app","concl
 open "http://127.0.0.1:3080/dot/status"
 ```
 
+## Daily status pages (v0.3)
+
+`/dot/status` answers "what is the dot doing now"; dot-report answers "what
+did the dot do on day D" — one `status/YYYY-MM-DD.md` per alive day, built
+deterministically (no model call) from journal + drained inbox + rounds +
+heartbeats: what fired, what the loop did, anomalies (restarts, route
+conflicts, write errors). Pages link themselves from `tasks.md`.
+
+The cadence is one durable schedule — arm it once, miss nothing:
+
+```
+dot_schedule add-every --name daily-rollup --everySeconds 86400 \
+  --task 'STATUS ROLLUP: run dot_report write (default yesterday); if the tool is unavailable, remount the preset'
+```
+
+`dot_report backfill` writes every alive day missing its page; `dot_report
+list` shows what exists. Mount the `dot-report` preset row first (see
+`deploy/agent.cordis.yml`).
+
 ## State home
 
 Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.dot`):
@@ -112,6 +134,7 @@ Everything the dot persists lives as plain files in its home (e.g. `~/opendot/.d
 | `policy.json` | dot-policy | autonomy rules (`dot_policy`) |
 | `schedule.json` | dot-scheduler | durable wakeups (`dot_schedule`) |
 | `tasks.md` | you + dot | standing tasks (driven by the persona) |
+| `status/<day>.md` | dot-report | daily rollup: what the dot did, what fired, anomalies (`dot_report`) |
 
 Files are the interface: read, edit, or append any of them directly; the dot rebuilds safely from partial state (atomic writes, seen-JSON fallbacks, torn-line-tolerant journals).
 
@@ -173,7 +196,7 @@ OpenAI's dots start by getting a name and grow by learning what good looks like.
 
 - **v0.1** — core/scheduler/memory/policy, file rows, mount-validated ✅
 - **v0.2** — dot-events: HTTP inbox, named webhooks, `/dot/status` activity view; policy engine extracted to a tested module; test suite ✅
-- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
+- **v0.3 (current)** — dot-profile identity + preferences/feedback ✅ (first slice); ranked recall (term coverage + recency + tag filters) ✅; daily status rollups ✅; specialist sub-dot roster; GitHub/Slack bridges on `/dot/hook`
 - v0.4 — graduate to TypeScript packages + `dsh plugin add` bundles; dot-ui panel; remote always-on deployment (EKS, Hatchet/Temporal)
 
 ## Parity with OpenAI dots

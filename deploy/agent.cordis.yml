@@ -22,6 +22,7 @@
     dotPolicy: true
     dotEvents: true
     dotProfile: true
+    dotReport: true
   config:
     - id: dot-core
       name: 'file:///path/to/opendot/plugins/dot-core.entry.js'
@@ -49,3 +50,11 @@
 
     - id: dot-profile
       name: 'file:///path/to/opendot/plugins/dot-profile.entry.js'
+
+    # v0.3: daily status pages (status/YYYY-MM-DD.md) — the archival layer
+    # under the live /dot/status view. Pair with one durable schedule so the
+    # goal loop writes yesterday's page each day:
+    #   dot_schedule add-every --name daily-rollup --everySeconds 86400 \
+    #     --task 'STATUS ROLLUP: run dot_report write (default yesterday); if the tool is unavailable, remount the preset'
+    - id: dot-report
+      name: 'file:///path/to/opendot/plugins/dot-report.entry.js'
